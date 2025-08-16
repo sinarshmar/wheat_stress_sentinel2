@@ -220,7 +220,6 @@ function flattenDictProperty(eeObj, propName, prefix) {
 var firstComp = ee.Image(composites.first());
 metricsImage = ee.Image(metricsImage.set({
   run_tag: firstComp.get('run_tag'),
-  maskProvenance_raw: firstComp.get('maskProvenance'),
   phase1_module: 'users/lalutatu/wheatstress:Phase_1',
   smoothing_method: PARAMS2.method,
   indices: PARAMS2.indices.join(','),
@@ -233,7 +232,8 @@ metricsImage = ee.Image(metricsImage.set({
   slopeHalfWinDays: PARAMS2.slopeHalfWinDays
 }));
 
-metricsImage = ee.Image(flattenDictProperty(metricsImage, 'maskProvenance_raw', 'mask_'));
+metricsImage = metricsImage.set({maskProvenance: firstComp.get('maskProvenance')});
+metricsImage = ee.Image(flattenDictProperty(metricsImage, 'maskProvenance', 'mask_'));
 
 
 var metricNames = buildMetricNames(PARAMS2.indices);
