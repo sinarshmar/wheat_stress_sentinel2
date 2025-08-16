@@ -221,7 +221,7 @@ var firstComp = ee.Image(composites.first());
 metricsImage = ee.Image(metricsImage.set({
   run_tag: firstComp.get('run_tag'),
   maskProvenance_raw: firstComp.get('maskProvenance'),
-  phase1_module: 'users/<myname>/wheatstress:phase1_main',
+  phase1_module: 'users/lalutatu/wheatstress:Phase_1',
   smoothing_method: PARAMS2.method,
   indices: PARAMS2.indices.join(','),
   stepDays: PARAMS2.stepDays,
@@ -233,7 +233,7 @@ metricsImage = ee.Image(metricsImage.set({
   slopeHalfWinDays: PARAMS2.slopeHalfWinDays
 }));
 
-metricsImage = ee.Image(flattenDictProperty(metricsImage, 'maskProvenance', 'mask_'));
+metricsImage = ee.Image(flattenDictProperty(metricsImage, 'maskProvenance_raw', 'mask_'));
 
 
 var metricNames = buildMetricNames(PARAMS2.indices);
@@ -243,16 +243,16 @@ if (PARAMS2.showPreview) {
   Map.centerObject(aoi, 9);
 
   // Crop mask tint
-  Map.addLayer(cropMask.selfMask(), {palette:['66bb66'], opacity:0.2}, 'Crop mask');
+  Map.addLayer(cropMask.selfMask().clip(aoi), {palette:['66bb66'], opacity:0.2}, 'Crop mask');
 
   // Quicklooks
-  Map.addLayer(metricsImage.select('NDVI_peak'),
+  Map.addLayer(metricsImage.select('NDVI_peak').clip(aoi),
                {min:0.2, max:0.9, palette:['2c7bb6','abd9e9','ffffbf','fdae61','d7191c']},
                'NDVI_peak');
-  Map.addLayer(metricsImage.select('NDVI_drop'),
+  Map.addLayer(metricsImage.select('NDVI_drop').clip(aoi),
                {min:-0.3, max:0.3, palette:['313695','74add1','ffffff','f46d43','a50026']},
                'NDVI_drop (peak - anchor)');
-  Map.addLayer(metricsImage.select('NDVI_AUC'),
+  Map.addLayer(metricsImage.select('NDVI_AUC').clip(aoi),
                {min:3, max:25, palette:['00441b','1b7837','a6dba0','d9f0d3']},
                'NDVI_AUC', true);
 
@@ -293,7 +293,8 @@ Map.onClick(function(pt){
       vAxis: {title:'Value'},
       pointSize: 2,
       lineWidth: 2,
-      legend: {position:'bottom'}
+      legend: {position:'bottom'},
+      interpolateNulls: true
     });
   print(chart);
 
