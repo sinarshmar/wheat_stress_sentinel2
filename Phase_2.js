@@ -30,7 +30,7 @@ var PARAMS2 = {
   scaleFactor: 1.0,
 
   // Preview
-  showPreview: true,
+  showPreview: false,
   chartIndex: 'NDVI',
 
   // Spatial defaults (inherit Phase 1)
