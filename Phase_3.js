@@ -320,7 +320,9 @@ var sharedProps = {
   stepDays: PARAMS2.stepDays,
   crs: PARAMS.crs, scale: PARAMS.scale,
   sdFloor: PARAMS3.sdFloor,                 // <<< add
-  auc_units: 'NDVI*day'                      // <<< add (NDVI is unitless; days from stepDays)
+  auc_units: 'NDVI*day',                      // <<< add (NDVI is unitless; days from stepDays)
+  baseline_years: 3 // number of historical seasons used
+  
 };
 
 
@@ -442,4 +444,6 @@ print('NDVI_AUC_hist_sd quick stats (sampled):', sdStats);
 var fracTinySD = sdSamples.filter(ee.Filter.lt('NDVI_AUC_hist_sd', PARAMS3.sdFloor))
                           .size().divide(sdSamples.size());
 print('Fraction of pixels with sd < sdFloor:', fracTinySD);
+
+
 
