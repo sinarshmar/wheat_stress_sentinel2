@@ -34,6 +34,7 @@ var PARAMS3 = {
   indices: ['NDVI','NDWI','GNDVI','SAVI','MSAVI2'],
   histIndices: ['NDVI'],     // << memory-lean baseline
   eps: 1e-6,
+  sdFloor: 1.0,     // minimum SD for z-score denom, in NDVI*AUC units (tweak 0.5–2.0 if needed)
   clipZ: 5,
   showPreview: false
 };
@@ -288,12 +289,19 @@ var NDWI_drop    = curMetrics.select('NDWI_drop').updateMask(cropMask);
 var NDVI_AUC_cur = curMetrics.select('NDVI_AUC').rename('NDVI_AUC_cur').updateMask(cropMask);
 
 var meanHist = aucBaselineStats.select('NDVI_AUC_hist_mean');
-var sdHist   = aucBaselineStats.select('NDVI_AUC_hist_sd').max(PARAMS3.eps);
-var AUC_z    = NDVI_AUC_cur.subtract(meanHist).divide(sdHist).rename('AUC_z');
-var AUC_z_vis= AUC_z.clamp(-PARAMS3.clipZ, PARAMS3.clipZ).rename('AUC_z_vis');
+var sdRaw    = aucBaselineStats.select('NDVI_AUC_hist_sd');
+var sdUsed   = sdRaw.max(PARAMS3.sdFloor).rename('NDVI_AUC_hist_sd_used');
+var floorApplied = sdRaw.lt(PARAMS3.sdFloor).rename('sd_floor_applied');  // 1 where floored
 
-var anomalyHelpers = ee.Image.cat([NDVI_drop, NDWI_drop, NDVI_AUC_cur, AUC_z, AUC_z_vis])
-                      .updateMask(cropMask).clip(aoi);
+var AUC_z_raw = NDVI_AUC_cur.subtract(meanHist).divide(sdRaw.max(PARAMS3.eps)).rename('AUC_z_raw');
+var AUC_z     = NDVI_AUC_cur.subtract(meanHist).divide(sdUsed).rename('AUC_z');
+var AUC_z_vis = AUC_z.clamp(-PARAMS3.clipZ, PARAMS3.clipZ).rename('AUC_z_vis');
+
+var anomalyHelpers = ee.Image.cat([
+  NDVI_drop, NDWI_drop, NDVI_AUC_cur,
+  AUC_z_raw, AUC_z, AUC_z_vis,
+  sdUsed, floorApplied
+]).updateMask(cropMask).clip(aoi);
 
 print('Baseline bands:', aucBaselineStats.bandNames());
 print('Anomaly helpers:', anomalyHelpers.bandNames());
@@ -310,8 +318,12 @@ var sharedProps = {
   slopeWin2Center: PARAMS2.slopeWin2Center,
   slopeHalfWinDays: PARAMS2.slopeHalfWinDays,
   stepDays: PARAMS2.stepDays,
-  crs: PARAMS.crs, scale: PARAMS.scale
+  crs: PARAMS.crs, scale: PARAMS.scale,
+  sdFloor: PARAMS3.sdFloor,                 // <<< add
+  auc_units: 'NDVI*day'                      // <<< add (NDVI is unitless; days from stepDays)
 };
+
+
 var maskFlat = prefixDict('mask_', maskProv);
 aucBaselineStats = ee.Image(aucBaselineStats.set(sharedProps).set('maskProvenance', maskProv).setMulti(maskFlat));
 anomalyHelpers   = ee.Image(anomalyHelpers  .set(sharedProps).set('maskProvenance', maskProv).setMulti(maskFlat));
@@ -409,3 +421,25 @@ var pct = samplesFC.reduceColumns({
   selectors: ['AUC_z']
 });
 print('AUC_z percentiles (sampled):', pct);
+
+
+// --- SD sanity (sampled) ---
+var sdSampleScale = ee.Number(PARAMS.scale).multiply(5);
+var sdSamples = aucBaselineStats.select('NDVI_AUC_hist_sd').sample({
+  region: aoi, scale: sdSampleScale, numPixels: 60000, seed: 13, tileScale: 8, geometries: false
+});
+
+var sdStats = sdSamples.reduceColumns({
+  reducer: ee.Reducer.min()
+            .combine({reducer2: ee.Reducer.max(), sharedInputs: true})
+            .combine({reducer2: ee.Reducer.mean(), sharedInputs: true})
+            .combine({reducer2: ee.Reducer.stdDev(), sharedInputs: true})
+            .combine({reducer2: ee.Reducer.percentile([5,25,50,75,95]), sharedInputs: true}),
+  selectors: ['NDVI_AUC_hist_sd']
+});
+print('NDVI_AUC_hist_sd quick stats (sampled):', sdStats);
+
+var fracTinySD = sdSamples.filter(ee.Filter.lt('NDVI_AUC_hist_sd', PARAMS3.sdFloor))
+                          .size().divide(sdSamples.size());
+print('Fraction of pixels with sd < sdFloor:', fracTinySD);
+
