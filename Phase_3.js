@@ -303,9 +303,10 @@ var anomalyHelpers = ee.Image.cat([
   sdUsed, floorApplied
 ]).updateMask(cropMask).clip(aoi);
 
+if (PARAMS3.showPreview) {
 print('Baseline bands:', aucBaselineStats.bandNames());
 print('Anomaly helpers:', anomalyHelpers.bandNames());
-
+}
 /* === Provenance (cast back to Image after setMulti) === */
 var sharedProps = {
   run_tag: (PARAMS.runTag || PARAMS.run_tag),
