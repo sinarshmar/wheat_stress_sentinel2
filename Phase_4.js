@@ -15,6 +15,7 @@ var maskProv   = ee.Dictionary(p1.maskProvenance || {});
 
 /* Phase-4 config (Option-B) */
 var PARAMS4 = {
+  ruleVersion: 'OptionB_v1',
   ndviDropThr: 0.30,
   ndwiDropThr: 0.10,
   aucZThr:    -1.0,
@@ -41,11 +42,21 @@ function requireBands(img, needed){
   });
 }
 
-/* Fetch helpers (strict mask + AOI clip) */
+// finite guard
+// Guard: keep only finite (not NaN, not Inf) values
+function finite(img) {
+  return img
+    .updateMask(img.lt(1e20))   // filter out +Inf
+    .updateMask(img.gt(-1e20))  // filter out -Inf
+    .updateMask(img.neq(null)); // filter out NaN
+}
+
+// Fetch helpers (strict mask + AOI clip)
 requireBands(helpers, ['NDVI_drop','NDWI_drop','AUC_z']);
-var NDVI_drop = helpers.select('NDVI_drop').updateMask(cropMask).clip(aoi);
-var NDWI_drop = helpers.select('NDWI_drop').updateMask(cropMask).clip(aoi);
-var AUC_z     = helpers.select('AUC_z')    .updateMask(cropMask).clip(aoi);
+var NDVI_drop = finite(helpers.select('NDVI_drop')).updateMask(cropMask).clip(aoi);
+var NDWI_drop = finite(helpers.select('NDWI_drop')).updateMask(cropMask).clip(aoi);
+var AUC_z     = finite(helpers.select('AUC_z'))    .updateMask(cropMask).clip(aoi);
+
 
 /* Label rule (Option-B): primary AND auxiliary */
 var primary   = NDVI_drop.gt(PARAMS4.ndviDropThr); // P2 drop = peak - anchor → positive
@@ -69,8 +80,8 @@ PARAMS4.weightGamma = (PARAMS4.weightGamma !== undefined) ? PARAMS4.weightGamma 
 var soft01 = ee.Image(1).subtract(prod.multiply(PARAMS4.weightGamma).multiply(-1).exp());
 
 // Scale to 0..weightCap; mask to positives only
-var weight   = soft01.multiply(PARAMS4.weightCap).rename('weight').updateMask(label01);
-var weight01 = soft01.rename('weight01').updateMask(label01);
+var weight   = finite(soft01.multiply(PARAMS4.weightCap)).rename('weight').updateMask(label01);
+var weight01 = finite(soft01).rename('weight01').updateMask(label01);
 
 /* Stacks */
 var labelStack  = ee.Image.cat([label01, labelMask]).updateMask(cropMask).clip(aoi);
@@ -81,6 +92,7 @@ var labelWeight = ee.Image.cat([label01, weight, weight01]).updateMask(cropMask)
 var sharedProps = {
   run_tag: guessRunTag(PARAMS),
   phase4_rule: 'OptionB',
+  phase4_rule_version: PARAMS4.ruleVersion,
   ndviDropThr: PARAMS4.ndviDropThr,
   ndwiDropThr: PARAMS4.ndwiDropThr,
   aucZThr:     PARAMS4.aucZThr,
