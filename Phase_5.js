@@ -14,7 +14,7 @@ var SCALE    = PARAMS.scale;  // 10 m
 var RUN_TAG  = (PARAMS.runTag || ('rabi_' + ee.Date(PARAMS.seasonStart).format('YYYY_YY')));
 
 /* Phase-4: label + weight (required for sampling) */
-var labelImg  = ee.Image(p4.label01).rename('label').toInt();
+var labelImg  = ee.Image(p4.label01).rename('label').toInt16();
 var weightImg = ee.Image(p4.weight).unmask(0).rename('weight');
 
 /* Phase-1 crop mask → SAFE fallback to 1 if absent */
@@ -61,18 +61,16 @@ var grid = ee.FeatureCollection(ee.List.sequence(0, n.subtract(1)).map(function(
 
 /* 4) tile_id raster */
 var tileIdImg = ee.Image().paint(grid, 'tile_id')
-  .rename('tile_id').toInt()
-  .reproject({crs: CRS, scale: SCALE});
+  .rename('tile_id').toInt();
 
 /* 5) lon/lat bands (avoid geometry in samples/export) */
 var lonlat = ee.Image.pixelLonLat()
-  .select(['latitude','longitude'], ['lat','lon'])
-  .reproject({crs: CRS, scale: SCALE});
+  .select(['latitude','longitude'], ['lat','lon']);
 
-/* 6) BASE IMAGE FOR SAMPLING (tiny & safe) */
+/* 6) BASE IMAGE FOR SAMPLING */
 var baseImg = ee.Image.cat([labelImg, weightImg, tileIdImg, lonlat]).updateMask(cropMaskSafe);
 
-/* 7) PER-TILE, PER-CLASS SAMPLING (explicit masks; no stratifiedSample) */
+/* 7) PER-TILE, PER-CLASS SAMPLING */
 var perTileSamples = grid.map(function (tile) {
   var geom = ee.Feature(tile).geometry();
   var lbl  = baseImg.select('label');
@@ -98,7 +96,6 @@ var perTileSamples = grid.map(function (tile) {
     geometries: false
   });
 
-  // Add season/year/run_tag (tile_id/lat/lon already present)
   return s0.merge(s1).map(function (f) {
     return f.set({
       season: ee.String(PARAMS.seasonStart).cat('_').cat(PARAMS.seasonEnd),
@@ -108,22 +105,47 @@ var perTileSamples = grid.map(function (tile) {
   });
 }).flatten();
 
-/* 8) GLOBAL BALANCE (deterministic) */
+/* 8) GLOBAL BALANCE */
 var withRand  = perTileSamples.randomColumn('rand', PH5.seed);
 var stressed  = withRand.filter(ee.Filter.eq('label', 1)).sort('rand').limit(PH5.targetPerClass);
 var healthy   = withRand.filter(ee.Filter.eq('label', 0)).sort('rand').limit(PH5.targetPerClass);
 var samplesBalanced = stressed.merge(healthy);
 
-/* 9) ATTACH PREDICTORS SAFELY (sampleRegions onto points) */
-// Slim predictors to keep CSV manageable
+/* 9) ATTACH PREDICTORS SAFELY */
+function keepExistingBands(want, have) {
+  want = ee.List(want);
+  have = ee.List(have);
+  var haveDict = ee.Dictionary.fromLists(have, have.map(function(_) { return 1; }));
+  var kept = want.map(function(b) {
+    b = ee.String(b);
+    return ee.Algorithms.If(haveDict.contains(b), b, null);
+  });
+  return ee.List(kept).removeAll([null]);
+}
+
 if (HAS_METRICS) {
-  metrics = metrics.select([
+  var wantM = ee.List([
     'NDVI_peak','NDVI_drop','NDVI_AUC','NDVI_slopeEarly','NDVI_datePeak_doy',
     'NDWI_drop','NDWI_AUC'
   ]);
+  var haveM = metrics.bandNames();
+  var keepM = keepExistingBands(wantM, haveM);
+  metrics = ee.Image(ee.Algorithms.If(
+    keepM.size().gt(0),
+    metrics.select(keepM),
+    metrics.select([haveM.get(0)])
+  ));
 }
+
 if (HAS_HELPERS) {
-  helpersRen = helpersRen.select(['h_AUC_z','h_NDVI_AUC_cur','h_sd_floor_applied']);
+  var wantH = ee.List(['h_AUC_z','h_NDVI_AUC_cur','h_sd_floor_applied']);
+  var haveH = helpersRen.bandNames();
+  var keepH = keepExistingBands(wantH, haveH);
+  helpersRen = ee.Image(ee.Algorithms.If(
+    keepH.size().gt(0),
+    helpersRen.select(keepH),
+    helpersRen.select([haveH.get(0)])
+  ));
 }
 
 var predictorsImg;
@@ -134,54 +156,53 @@ if (HAS_METRICS && HAS_HELPERS) {
 } else if (HAS_HELPERS) {
   predictorsImg = helpersRen;
 } else {
-  // Fallback dummy band so sampleRegions has ≥1 band; drop later if desired.
   predictorsImg = ee.Image.constant(0).rename('pad');
 }
 
-
-predictorsImg = predictorsImg.toFloat();   // reduces payload size
-
+predictorsImg = ee.Image(ee.Algorithms.If(
+  predictorsImg.bandNames().size().gt(0),
+  predictorsImg,
+  ee.Image.constant(0).rename('pad')
+)).toFloat();
 
 var toExport = predictorsImg.sampleRegions({
-  collection: samplesBalanced,     // copies existing properties
+  collection: samplesBalanced,
   scale: SCALE,
   tileScale: PH5.tileScale,
   geometries: false
 });
 
-// If we had to add 'pad', remove it to keep CSV clean
 if (!HAS_METRICS && !HAS_HELPERS) {
   toExport = toExport.map(function(f){ return f.select(f.propertyNames().remove('pad')); });
 }
 
-/* 10) EXPORT — single merged CSV with explicit column order */
-var predictors = HAS_METRICS && HAS_HELPERS ? predictorsImg.bandNames()
-                 : HAS_METRICS ? metrics.bandNames()
-                 : HAS_HELPERS ? helpersRen.bandNames()
-                 : ee.List([]);
-
-// Order: admin/meta first, then predictors
-var selectors = ee.List([
+/* 10) EXPORT */
+var predictors = predictorsImg.bandNames();
+var selectorsEE = ee.List([
   'tile_id','lat','lon','season','year','run_tag','label','weight'
 ]).cat(predictors);
+var selectorsClient = selectorsEE.getInfo();
 
-// (Optional) Tiny preview (~1k rows) to inspect schema quickly
-var preview = toExport.select(selectors).randomColumn('r', 99).sort('r').limit(300);
+// (Optional) Ultra‑light preview (~50 rows). No random/sort to avoid heavy ops.
+var preview = toExport.select(selectorsEE).limit(50);
+
 Export.table.toDrive({
   collection: preview,
   description: 'phase5_preview_' + RUN_TAG,
   fileNamePrefix: 'phase5_preview_' + RUN_TAG,
   folder: PH5.exportFolder,
-  fileFormat: 'CSV'
+  fileFormat: 'CSV',
+  selectors: selectorsClient
 });
 
-// Main export
+
 Export.table.toDrive({
-  collection: toExport.select(selectors),
+  collection: toExport.select(selectorsEE),
   description: 'phase5_samples_' + RUN_TAG,
   fileNamePrefix: 'phase5_samples_' + RUN_TAG,
   folder: PH5.exportFolder,
-  fileFormat: 'CSV'
+  fileFormat: 'CSV',
+  selectors: selectorsClient
 });
 
 /* 11) LIGHT DIAGNOSTICS */

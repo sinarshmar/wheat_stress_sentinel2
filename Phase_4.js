@@ -45,11 +45,11 @@ function requireBands(img, needed){
 // finite guard
 // Guard: keep only finite (not NaN, not Inf) values
 function finite(img) {
-  return img
-    .updateMask(img.lt(1e20))   // filter out +Inf
-    .updateMask(img.gt(-1e20))  // filter out -Inf
-    .updateMask(img.neq(null)); // filter out NaN
+  img = ee.Image(img);
+  var finiteMask = img.lt(1e20).and(img.gt(-1e20)).and(img.eq(img)); // mask out ±Inf and NaN
+  return img.updateMask(finiteMask);
 }
+
 
 // Fetch helpers (strict mask + AOI clip)
 requireBands(helpers, ['NDVI_drop','NDWI_drop','AUC_z']);
