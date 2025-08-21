@@ -19,8 +19,10 @@ var PARAMS4 = {
   ndwiDropThr: 0.10,
   aucZThr:    -1.0,
   weightCap:   3.0,
-  showPreview: true,
-  showDistStats: false  // <- set true only if you need helper distributions
+  showPreview: false,
+  showDistStats: false,  // <- set true only if you need helper distributions
+  weightGamma: 1.1,  // controls how fast weight rises; try 0.7–1.5
+
 };
 
 /* Utils */
@@ -51,11 +53,24 @@ var auxiliary = NDWI_drop.gt(PARAMS4.ndwiDropThr).and(AUC_z.lt(PARAMS4.aucZThr))
 var label01   = primary.and(auxiliary).rename('label01').updateMask(cropMask).clip(aoi);
 var labelMask = label01.selfMask();  // for display
 
-/* Weight rule: positives only carry weight */
-var rawWeight = NDVI_drop.abs().divide(PARAMS4.ndviDropThr)
-                 .multiply(NDWI_drop.abs().divide(PARAMS4.ndwiDropThr));
-var weight   = rawWeight.min(PARAMS4.weightCap).rename('weight').updateMask(label01);
-var weight01 = weight.divide(PARAMS4.weightCap).rename('weight01').updateMask(label01);
+/* Weight rule (Option A, anchored to thresholds) */
+var n1 = NDVI_drop.divide(PARAMS4.ndviDropThr); // >=1 in positives
+var n2 = NDWI_drop.divide(PARAMS4.ndwiDropThr);
+
+// Anchor so (n1=1, n2=1) ⇒ zero signal; only the excess over threshold contributes
+var m1 = n1.subtract(1).max(0);
+var m2 = n2.subtract(1).max(0);
+var prod = m1.multiply(m2);
+
+// Ensure gamma exists (fallback)
+PARAMS4.weightGamma = (PARAMS4.weightGamma !== undefined) ? PARAMS4.weightGamma : 0.4;
+
+// Soft 0..1 curve: 1 - exp(-gamma * prod)
+var soft01 = ee.Image(1).subtract(prod.multiply(PARAMS4.weightGamma).multiply(-1).exp());
+
+// Scale to 0..weightCap; mask to positives only
+var weight   = soft01.multiply(PARAMS4.weightCap).rename('weight').updateMask(label01);
+var weight01 = soft01.rename('weight01').updateMask(label01);
 
 /* Stacks */
 var labelStack  = ee.Image.cat([label01, labelMask]).updateMask(cropMask).clip(aoi);
@@ -73,7 +88,9 @@ var sharedProps = {
   crs: PARAMS.crs,
   scale: PARAMS.scale,
   phase2_method: PARAMS2.method,
-  hist_seasons: ee.List(PARAMS3.histSeasons || []).map(function(s){ return ee.Dictionary(s).get('tag'); })
+  hist_seasons: ee.List(PARAMS3.histSeasons || []).map(function(s){ return ee.Dictionary(s).get('tag'); }),
+  weightGamma: PARAMS4.weightGamma
+  
 };
 var maskFlat = prefixDict('mask_', maskProv);
 
@@ -138,6 +155,26 @@ if (PARAMS4.showPreview) {
   }).get('area');
   print('Phase 4 — positive fraction (area-weighted):', ee.Number(posArea).divide(totArea));
 
+  // Gate diagnostics (sampled, unbiased)
+  var gateSample = ee.Image.cat([
+    NDVI_drop.gt(PARAMS4.ndviDropThr).rename('primary'),
+    NDWI_drop.gt(PARAMS4.ndwiDropThr).and(AUC_z.lt(PARAMS4.aucZThr)).rename('aux'),
+    label01.rename('both')
+  ]).sample({
+    region: aoi, scale: sampleScale, numPixels: 15000, seed: 5, tileScale: 12
+  });
+  var gateMeans = gateSample.reduceColumns({
+    reducer: ee.Reducer.mean().repeat(3), selectors: ['primary','aux','both']
+  });
+  print('PH4 — gate coverage (primary, aux, both):', gateMeans);
+
+  
+  var posArea_ha = ee.Number(posArea).divide(10000);
+  var totArea_ha = ee.Number(totArea).divide(10000);
+  print('PH4 — positive area (ha):', posArea_ha);
+  print('PH4 — total crop area (ha):', totArea_ha);
+
+
   // 2) Weight stats (positives only)
   var weightSamp = weight.sample({
     region: aoi, scale: sampleScale, numPixels: 20000, seed: 7, tileScale: 12
@@ -161,12 +198,20 @@ if (PARAMS4.showPreview) {
     ]).sample({
       region: aoi, scale: sampleScale, numPixels: 20000, seed: 11, tileScale: 12
     });
-    var distStats = distSamp.reduceColumns({
-      reducer: ee.Reducer.percentile([5,25,50,75,95]),
-      selectors: ['ndvi_drop','ndwi_drop','auc_z']
-    });
-    print('PH4 — drop/z percentiles (sampled):', distStats);
+    
+    var perc = ee.Reducer.percentile([5,25,50,75,95]);
+    
+    var ndviP = distSamp.reduceColumns({ reducer: perc, selectors: ['ndvi_drop'] });
+    var ndwiP = distSamp.reduceColumns({ reducer: perc, selectors: ['ndwi_drop'] });
+    var zP    = distSamp.reduceColumns({ reducer: perc, selectors: ['auc_z'] });
+    
+    print('PH4 — percentiles NDVI_drop:', ndviP);
+    print('PH4 — percentiles NDWI_drop:', ndwiP);
+    print('PH4 — percentiles AUC_z:', zP);
+    
   }
+  
+  
 }
 
 /* Exports */
