@@ -112,6 +112,8 @@ var healthy   = withRand.filter(ee.Filter.eq('label', 0)).sort('rand').limit(PH5
 var samplesBalanced = stressed.merge(healthy);
 
 /* 9) ATTACH PREDICTORS SAFELY */
+
+// Helper: keep only items from `want` that actually exist in `have`
 function keepExistingBands(want, have) {
   want = ee.List(want);
   have = ee.List(have);
@@ -123,6 +125,14 @@ function keepExistingBands(want, have) {
   return ee.List(kept).removeAll([null]);
 }
 
+// --- Validation helper ---
+function warnMissing(from, image, required){
+  var have = ee.List(image.bandNames());
+  var missing = ee.List(required).removeAll(have);
+  print('⚠️ ' + from + ' missing bands:', missing);
+}
+
+// Slim predictors (metrics/helpers) with defensive selection
 if (HAS_METRICS) {
   var wantM = ee.List([
     'NDVI_peak','NDVI_drop','NDVI_AUC','NDVI_slopeEarly','NDVI_datePeak_doy',
@@ -148,6 +158,19 @@ if (HAS_HELPERS) {
   ));
 }
 
+// --- Phase-specific validation (right before building predictorsImg) ---
+var reqP2 = [
+  'NDVI_peak','NDVI_drop','NDVI_AUC','NDVI_slopeEarly','NDVI_datePeak_doy',
+  'NDWI_drop','NDWI_AUC'
+];
+var reqP3 = ['h_AUC_z','h_NDVI_AUC_cur','h_sd_floor_applied'];
+var reqP4 = ['label','weight'];
+
+if (HAS_METRICS)  warnMissing('PH2', metrics,    reqP2);
+if (HAS_HELPERS)  warnMissing('PH3', helpersRen, reqP3);
+warnMissing('PH4', baseImg.select(['label','weight']), reqP4);
+
+// Build predictors image safely
 var predictorsImg;
 if (HAS_METRICS && HAS_HELPERS) {
   predictorsImg = metrics.addBands(helpersRen);
@@ -159,12 +182,14 @@ if (HAS_METRICS && HAS_HELPERS) {
   predictorsImg = ee.Image.constant(0).rename('pad');
 }
 
+// Ensure ≥1 band; cast to float to shrink payload
 predictorsImg = ee.Image(ee.Algorithms.If(
   predictorsImg.bandNames().size().gt(0),
   predictorsImg,
   ee.Image.constant(0).rename('pad')
 )).toFloat();
 
+// Join predictors to points
 var toExport = predictorsImg.sampleRegions({
   collection: samplesBalanced,
   scale: SCALE,
@@ -183,8 +208,8 @@ var selectorsEE = ee.List([
 ]).cat(predictors);
 var selectorsClient = selectorsEE.getInfo();
 
-// (Optional) Ultra‑light preview (~50 rows). No random/sort to avoid heavy ops.
-var preview = toExport.select(selectorsEE).limit(50);
+// Ultra‑light preview (~5 rows). No random/sort to avoid heavy ops.
+var preview = toExport.select(selectorsEE).limit(5);
 
 Export.table.toDrive({
   collection: preview,
@@ -194,7 +219,6 @@ Export.table.toDrive({
   fileFormat: 'CSV',
   selectors: selectorsClient
 });
-
 
 Export.table.toDrive({
   collection: toExport.select(selectorsEE),
