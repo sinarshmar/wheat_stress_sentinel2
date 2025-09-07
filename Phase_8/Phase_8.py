@@ -1,14 +1,14 @@
 """
-Phase 8: Visual Validation Sampling (CLEANED VERSION)
-Generates 150 validation points for GUIDED validation only
-Model predictions are visible to help calibrate assessment
-WITH COMPREHENSIVE LOGGING TO FILE
+Phase 8: Visual Validation Sampling (CLEANED + FIXED VERSION)
+Generates 150 validation points for GUIDED validation only.
+Model predictions are visible to help calibrate assessment.
+Includes agreement-based summary (Table 11a) generator.
 """
 
 import numpy as np
 import pandas as pd
 import rasterio
-from rasterio.transform import xy
+import rasterio.transform
 from pyproj import Transformer
 from pathlib import Path
 import json
@@ -16,6 +16,7 @@ from datetime import datetime
 import random
 import sys
 import traceback
+import os
 
 # ============================================================================
 # LOGGING SETUP
@@ -55,9 +56,10 @@ class Config:
     # Input files
     PROBABILITY_MAP = "ludhiana_stress_map_rf_2023_24_probability_pct.tif"
     
-    # Output directory
+    # Output directories
     OUTPUT_DIR = Path("Phase_8_Validation")
     LOG_DIR = Path("logs")
+    SUMMARY_OUT_DIR = Path("Phase_8_validation_result")
     
     # Sampling parameters
     N_STRESSED = 75  # Points from stressed class
@@ -76,9 +78,6 @@ class Config:
     # Sentinel Hub EO Browser parameters
     SENTINEL_HUB_BASE = "https://apps.sentinel-hub.com/eo-browser/"
     ZOOM_LEVEL = 15  # Set to 15 for 100m radius assessment
-    # At zoom 15: ~4.77m per pixel, 100m radius = ~21 pixels
-    # At zoom 16: ~2.39m per pixel, 100m radius = ~42 pixels
-    # At zoom 17: ~1.19m per pixel, 100m radius = ~84 pixels
     
     # Key dates for validation
     VALIDATION_DATES = [
@@ -93,10 +92,12 @@ class Config:
 
 def setup_directories(config):
     """Create output directories"""
-    config.OUTPUT_DIR.mkdir(exist_ok=True)
-    config.LOG_DIR.mkdir(exist_ok=True)
+    config.OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+    config.LOG_DIR.mkdir(exist_ok=True, parents=True)
+    config.SUMMARY_OUT_DIR.mkdir(exist_ok=True, parents=True)
     print(f"✓ Output directory ready: {config.OUTPUT_DIR}")
     print(f"✓ Log directory ready: {config.LOG_DIR}")
+    print(f"✓ Summary directory ready: {config.SUMMARY_OUT_DIR}")
 
 def load_probability_map(filepath):
     """Load and analyze probability map"""
@@ -108,17 +109,22 @@ def load_probability_map(filepath):
         data = src.read(1)
         transform = src.transform
         crs = src.crs
+        nodata = src.nodata
         
-        # Get valid pixels (non-zero)
-        valid_mask = data > 0
+        # Valid mask: keep everything except NoData; allow 0..100 inclusive
+        valid_mask = ~np.isnan(data)
+        if nodata is not None:
+            valid_mask &= (data != nodata)
+        data = np.clip(data, 0, 100)  # safety clamp
         
         print(f"Map dimensions: {data.shape}")
         print(f"CRS: {crs}")
-        print(f"Valid pixels: {valid_mask.sum():,}")
+        print(f"NoData value: {nodata}")
+        print(f"Valid pixels: {int(valid_mask.sum()):,}")
         
         return data, valid_mask, transform, crs
 
-def sample_stressed_points(data, valid_mask, transform, n_samples, config):
+def sample_stressed_points(data, valid_mask, transform, crs, n_samples, rng, config):
     """
     Sample stressed points (LOW probability values = stressed)
     Remember: values are INVERTED (low = stressed, high = healthy)
@@ -134,42 +140,37 @@ def sample_stressed_points(data, valid_mask, transform, n_samples, config):
     n_available = len(stressed_pixels[0])
     print(f"Available stressed pixels (0-10% healthy prob): {n_available:,}")
     
+    if n_available == 0:
+        raise ValueError("No candidate pixels found for stressed class with current thresholds.")
     if n_available < n_samples:
         print(f"⚠️ Warning: Only {n_available} stressed pixels available, requested {n_samples}")
         n_samples = n_available
     
-    # Random sample
-    np.random.seed(config.RANDOM_SEED)
-    indices = np.random.choice(n_available, n_samples, replace=False)
+    # Random sample (use RNG seeded in main)
+    indices = rng.choice(n_available, n_samples, replace=False)
     
-    # Get selected pixels
-    sample_rows = stressed_pixels[0][indices]
-    sample_cols = stressed_pixels[1][indices]
-    
-    # Import pyproj for coordinate transformation
-    from pyproj import Transformer
-    # Create transformer from UTM to WGS84
-    transformer = Transformer.from_crs("EPSG:32643", "EPSG:4326", always_xy=True)
+    # Create transformer from raster CRS to WGS84
+    transformer = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
     
     # Convert to coordinates
     points = []
-    for row, col in zip(sample_rows, sample_cols):
-        # Get UTM coordinates
-        utm_x, utm_y = xy(transform, row, col)
-        # Convert to lat/lon
-        lon, lat = transformer.transform(utm_x, utm_y)
-        prob_value = data[row, col]
+    for row, col in zip(stressed_pixels[0][indices], stressed_pixels[1][indices]):
+        # Pixel centre coordinates in native CRS
+        x_native, y_native = rasterio.transform.xy(transform, int(row), int(col), offset='center')
+        # Convert to lon/lat
+        lon, lat = transformer.transform(x_native, y_native)
+        prob_value = float(data[int(row), int(col)])
         
         points.append({
             'point_id': f'S_{len(points)+1:03d}',
             'class': 'stressed',
             'pixel_row': int(row),
             'pixel_col': int(col),
-            'longitude': lon,
-            'latitude': lat,
-            'utm_x': utm_x,
-            'utm_y': utm_y,
-            'healthy_probability': float(prob_value),
+            'longitude': float(lon),
+            'latitude': float(lat),
+            'x_native': float(x_native),
+            'y_native': float(y_native),
+            'healthy_probability': prob_value,
             'stress_probability': float(100 - prob_value),  # Invert for clarity
             'confidence': 'high' if prob_value <= 5 else 'moderate'
         })
@@ -177,7 +178,7 @@ def sample_stressed_points(data, valid_mask, transform, n_samples, config):
     print(f"✓ Sampled {len(points)} stressed points")
     return points
 
-def sample_healthy_points(data, valid_mask, transform, n_samples, config):
+def sample_healthy_points(data, valid_mask, transform, crs, n_samples, rng, config):
     """
     Sample healthy points (HIGH probability values = healthy)
     """
@@ -192,42 +193,35 @@ def sample_healthy_points(data, valid_mask, transform, n_samples, config):
     n_available = len(healthy_pixels[0])
     print(f"Available healthy pixels (90-100% healthy prob): {n_available:,}")
     
+    if n_available == 0:
+        raise ValueError("No candidate pixels found for healthy class with current thresholds.")
     if n_available < n_samples:
         print(f"⚠️ Warning: Only {n_available} healthy pixels available, requested {n_samples}")
         n_samples = n_available
     
-    # Random sample
-    np.random.seed(config.RANDOM_SEED + 1)  # Different seed for healthy
-    indices = np.random.choice(n_available, n_samples, replace=False)
+    # Random sample (use RNG seeded in main)
+    indices = rng.choice(n_available, n_samples, replace=False)
     
-    # Get selected pixels
-    sample_rows = healthy_pixels[0][indices]
-    sample_cols = healthy_pixels[1][indices]
-    
-    # Import pyproj for coordinate transformation
-    from pyproj import Transformer
-    # Create transformer from UTM to WGS84
-    transformer = Transformer.from_crs("EPSG:32643", "EPSG:4326", always_xy=True)
+    # Create transformer from raster CRS to WGS84
+    transformer = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
     
     # Convert to coordinates
     points = []
-    for row, col in zip(sample_rows, sample_cols):
-        # Get UTM coordinates
-        utm_x, utm_y = xy(transform, row, col)
-        # Convert to lat/lon
-        lon, lat = transformer.transform(utm_x, utm_y)
-        prob_value = data[row, col]
+    for row, col in zip(healthy_pixels[0][indices], healthy_pixels[1][indices]):
+        x_native, y_native = rasterio.transform.xy(transform, int(row), int(col), offset='center')
+        lon, lat = transformer.transform(x_native, y_native)
+        prob_value = float(data[int(row), int(col)])
         
         points.append({
             'point_id': f'H_{len(points)+1:03d}',
             'class': 'healthy',
             'pixel_row': int(row),
             'pixel_col': int(col),
-            'longitude': lon,
-            'latitude': lat,
-            'utm_x': utm_x,
-            'utm_y': utm_y,
-            'healthy_probability': float(prob_value),
+            'longitude': float(lon),
+            'latitude': float(lat),
+            'x_native': float(x_native),
+            'y_native': float(y_native),
+            'healthy_probability': prob_value,
             'stress_probability': float(100 - prob_value),
             'confidence': 'high' if prob_value >= 95 else 'moderate'
         })
@@ -235,9 +229,9 @@ def sample_healthy_points(data, valid_mask, transform, n_samples, config):
     print(f"✓ Sampled {len(points)} healthy points")
     return points
 
-def randomize_points(points):
+def randomize_points(points, seed):
     """Randomize point order for unbiased presentation"""
-    random.seed(42)  # Fixed seed for reproducibility
+    random.seed(seed)  # Fixed seed for reproducibility
     randomized = points.copy()
     random.shuffle(randomized)
     
@@ -276,7 +270,6 @@ def create_sentinel_hub_links(points, config):
         # Add date-specific links for all three validation dates
         point['date_links'] = {}
         for date, description in config.VALIDATION_DATES:
-            # Date format for Sentinel Hub
             date_params = (
                 f"zoom={config.ZOOM_LEVEL}"
                 f"&lat={lat:.6f}"
@@ -482,18 +475,21 @@ def create_html_interface(points, config):
             const rows = table.querySelectorAll('tbody tr');
             
             // CSV headers
-            let csvContent = 'point_id,order,longitude,latitude,browser_link,model_prediction,model_stress_prob,model_confidence,your_assessment,your_confidence,visual_stress_level,notes\\n';
+            let csvContent = 'point_id,order,longitude,latitude,browser_link,model_prediction,model_stress_prob_str,model_stress_prob,your_assessment,your_confidence,visual_stress_level,notes\\n';
             
             rows.forEach(function(row) {
                 const cells = row.querySelectorAll('td');
                 const pointId = cells[1].textContent.trim();
                 const order = cells[0].textContent.trim();
                 const coords = cells[2].textContent.trim().replace('Copy', '').trim();
-                const [lat, lon] = coords.split(', ');
+                const parts = coords.split(', ');
+                const lat = parts[0];
+                const lon = parts[1];
                 const browserLink = cells[6].querySelector('.link-button').href;
                 const modelPrediction = cells[3].textContent.trim();
-                const stressProb = cells[4].textContent.trim();
-                const modelConfidence = cells[5].textContent.trim();
+                const stressProbStr = cells[4].textContent.trim(); // e.g., "12.3%"
+                const stressProbNum = parseFloat(stressProbStr.replace('%','')); // 12.3
+                const modelConfidence = cells[5].textContent.trim(); // kept but not saved separately
                 
                 // Get dropdown and textarea values
                 const assessment = cells[7].querySelector('.dropdown').value;
@@ -502,7 +498,7 @@ def create_html_interface(points, config):
                 const notes = cells[10].querySelector('.text-input').value.replace(/[\\n\\r]/g, ' ').replace(/"/g, '""');
                 
                 // Create CSV row
-                csvContent += `"${pointId}","${order}","${lon}","${lat}","${browserLink}","${modelPrediction}","${stressProb}","${modelConfidence}","${assessment}","${confidence}","${stressLevel}","${notes}"\\n`;
+                csvContent += `"${pointId}","${order}","${lon}","${lat}","${browserLink}","${modelPrediction}","${stressProbStr}",${isNaN(stressProbNum) ? "" : stressProbNum},"${assessment}","${confidence}","${stressLevel}","${notes}"\\n`;
             });
             
             // Create and download CSV file
@@ -732,7 +728,7 @@ def create_html_interface(points, config):
             <li>Use the calendar in EO Browser to check December 2023 and March 2024</li>
             <li>Compare with neighboring fields outside the 100m area for context</li>
             <li>Focus on overall pattern within the assessment area, not individual pixels</li>
-            <li>70-85% agreement with model = excellent validation</li>
+            <li>70–85% agreement with model = excellent validation</li>
             <li><strong>Remember to save your work:</strong> Click "Download as CSV" when finished</li>
         </ul>
     </div>
@@ -820,14 +816,9 @@ This is NOT about absolute truth - it's about visual consistency.
 - **High** - Severe stress clearly visible
 
 ## Expected Results
-- 70-85% agreement is EXCELLENT
+- 70–85% agreement is EXCELLENT
 - Higher agreement expected for high-confidence predictions
 - Some disagreement is normal and informative
-
-## Time Estimate
-- Quick scan: 30-60 seconds per point
-- Detailed check: 1-2 minutes per point
-- Total: 2-3 hours for 150 points
 
 ## Technical Notes
 - All assessment data is saved in the browser until you download the CSV
@@ -873,7 +864,7 @@ def create_summary_json(points, config):
             'visual_stress_level': ['None', 'Low', 'Moderate', 'High']
         },
         'expected_outcomes': {
-            'good_agreement': '70-85%',
+            'good_agreement': '70–85%',
             'interpretation': 'Agreement shows visual consistency, not ground truth accuracy'
         },
         'files_generated': [
@@ -891,6 +882,98 @@ def create_summary_json(points, config):
     print(f"✓ Created summary JSON: {summary_path}")
 
 # ============================================================================
+# AGREEMENT-BASED SUMMARY (TABLE 11a) 
+# ============================================================================
+
+def summarise_visual_validation(csv_path=None, out_dir="Phase_8_validation_result"):
+    """Compute agreement-based confusion matrix and summary metrics from visual validation CSV.
+    
+    If csv_path is None, tries:
+      1) Phase_8_validation_result/validation_results.csv
+      2) Phase_8_Validation/validation_results.csv
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
+    candidate_paths = []
+    if csv_path:
+        candidate_paths.append(csv_path)
+    candidate_paths += [
+        os.path.join(out_dir, "validation_results.csv"),
+        os.path.join("Phase_8_Validation", "validation_results.csv"),
+    ]
+
+    chosen = None
+    for p in candidate_paths:
+        if os.path.exists(p):
+            chosen = p
+            break
+
+    if not chosen:
+        raise FileNotFoundError("Could not find 'validation_results.csv'. Place it in "
+                                f"'{out_dir}/' or 'Phase_8_Validation/' and re-run.")
+
+    df = pd.read_csv(chosen)
+
+    # Normalise columns
+    df['model_prediction'] = df['model_prediction'].astype(str).str.upper().str.strip()
+    df['your_assessment'] = df['your_assessment'].astype(str).str.capitalize().str.strip()
+
+    # Outcome mapping
+    def outcome(row):
+        mp, ya = row['model_prediction'], row['your_assessment']
+        if mp == 'STRESSED' and ya == 'Agree':    return 'TP'
+        if mp == 'STRESSED' and ya == 'Disagree': return 'FP'
+        if mp == 'HEALTHY'  and ya == 'Agree':    return 'TN'
+        if mp == 'HEALTHY'  and ya == 'Disagree': return 'FN'
+        return 'UNK'
+
+    df['outcome'] = df.apply(outcome, axis=1)
+
+    tp = int((df['outcome'] == 'TP').sum())
+    fp = int((df['outcome'] == 'FP').sum())
+    fn = int((df['outcome'] == 'FN').sum())
+    tn = int((df['outcome'] == 'TN').sum())
+    n_all  = int(len(df))
+
+    # Confusion matrix: model rows x assessor agree/disagree columns (determinate only)
+    table_11a = pd.DataFrame(
+        [[tp, fp],
+         [fn, tn]],
+        index=['Model = STRESSED', 'Model = HEALTHY'],
+        columns=['Assessor agrees (treat as positive)', 'Assessor disagrees (treat as negative)']
+    )
+    table_11a.to_csv(os.path.join(out_dir, "table_11a_confusion_matrix.csv"), index=True)
+
+    # Agreement metrics
+    is_determinate = df['your_assessment'].isin(['Agree','Disagree'])
+    n_determinate = int(is_determinate.sum())
+    overall_agreement_all = (df['your_assessment'] == 'Agree').mean()
+    overall_agreement_determinate = (df.loc[is_determinate, 'your_assessment'] == 'Agree').mean() if n_determinate else float('nan')
+    precision_stressed = tp / (tp + fp) if (tp + fp) else float('nan')
+    recall_stressed    = tp / (tp + fn) if (tp + fn) else float('nan')
+    precision_healthy  = tn / (tn + fn) if (tn + fn) else float('nan')
+    recall_healthy     = tn / (tn + fp) if (tn + fp) else float('nan')
+
+    metrics = pd.DataFrame({
+        'metric': ['overall_agreement_all',
+                   'overall_agreement_determinate',
+                   'precision_stressed', 'recall_stressed',
+                   'precision_healthy', 'recall_healthy',
+                   'n_all_rows', 'n_determinate_rows'],
+        'value': [overall_agreement_all,
+                  overall_agreement_determinate,
+                  precision_stressed, recall_stressed,
+                  precision_healthy, recall_healthy,
+                  n_all, n_determinate]
+    })
+    metrics.to_csv(os.path.join(out_dir, "validation_agreement_metrics.csv"), index=False)
+
+    print("\nSaved validation summaries:")
+    print(f" - {os.path.join(out_dir, 'table_11a_confusion_matrix.csv')}")
+    print(f" - {os.path.join(out_dir, 'validation_agreement_metrics.csv')}")
+    print(f"Source file: {chosen}")
+
+# ============================================================================
 # MAIN EXECUTION
 # ============================================================================
 
@@ -898,6 +981,11 @@ def main():
     """Main execution function"""
     # Setup configuration
     config = Config()
+    
+    # Seeds (numpy + python) for reproducibility
+    random.seed(config.RANDOM_SEED)
+    np.random.seed(config.RANDOM_SEED)
+    rng = np.random.default_rng(config.RANDOM_SEED)
     
     # Setup directories
     setup_directories(config)
@@ -925,14 +1013,16 @@ def main():
         data, valid_mask, transform, crs = load_probability_map(prob_path)
         
         # Sample points
-        stressed_points = sample_stressed_points(data, valid_mask, transform, 
-                                                config.N_STRESSED, config)
-        healthy_points = sample_healthy_points(data, valid_mask, transform, 
-                                              config.N_HEALTHY, config)
+        stressed_points = sample_stressed_points(
+            data, valid_mask, transform, crs, config.N_STRESSED, rng, config
+        )
+        healthy_points = sample_healthy_points(
+            data, valid_mask, transform, crs, config.N_HEALTHY, rng, config
+        )
         
         # Combine and randomize for unbiased presentation
         all_points = stressed_points + healthy_points
-        randomized_points = randomize_points(all_points)
+        randomized_points = randomize_points(all_points, config.RANDOM_SEED)
         
         # Add browser links
         points_with_links = create_sentinel_hub_links(randomized_points, config)
@@ -957,31 +1047,32 @@ def main():
         print(f"   - {len(stressed_points)} stressed (high confidence)")
         print(f"   - {len(healthy_points)} healthy (high confidence)")
         
-        print(f"\n📁 Files created in {config.OUTPUT_DIR}/:")
-        print(f"   1. validation_interface.html - Interactive assessment tool")
-        print(f"   2. validation_guide.md - Quick reference guide")
-        print(f"   3. validation_summary.json - Metadata summary")
-        print(f"   4. validation_points_complete.json - Complete point data")
+        print(f"\n📁 Files created:")
+        print(f"   1. {config.OUTPUT_DIR / 'validation_interface.html'} - Interactive assessment tool")
+        print(f"   2. {config.OUTPUT_DIR / 'validation_guide.md'} - Quick reference guide")
+        print(f"   3. {config.OUTPUT_DIR / 'validation_summary.json'} - Metadata summary")
+        print(f"   4. {full_data_path} - Complete point data")
         
         print("\n📋 NEXT STEPS:")
-        print("1. Open 'validation_interface.html' in your browser")
-        print("2. For each point:")
+        print("1) Open 'Phase_8_Validation/validation_interface.html' in your browser")
+        print("2) For each point:")
         print("   - Click 'Open in EO Browser' to view imagery")
-        print("   - Focus on 100m radius around center point")
-        print("   - Check imagery for all three dates (Dec, Feb, Mar)")
-        print("   - Use dropdown menus to record your assessment")
-        print("   - Add notes in the text area if needed")
-        print("3. Click 'Download as CSV' to save your results")
-        print("4. Run Phase_8_Analysis.py on the downloaded CSV file")
+        print("   - Focus on ~100m radius around center point")
+        print("   - Check imagery for Dec 2023, Feb 2024, Mar 2024")
+        print("   - Record Agree/Disagree/Uncertain, confidence, and stress level")
+        print("3) Click 'Download as CSV' to save 'validation_results.csv'")
+        print("4) Move 'validation_results.csv' into either:")
+        print("   - 'Phase_8_validation_result/'  OR")
+        print("   - 'Phase_8_Validation/'")
+        print("5) Re-run this script (Phase_8.py) to generate Table 11a and metrics")
         
         print(f"\n🔍 Assessment Details:")
         print(f"   - Zoom level: {config.ZOOM_LEVEL} (optimized for 100m radius)")
         print(f"   - Default date: February 16, 2024 (peak growth)")
-        print(f"   - Assessment area: ~100m radius around each point")
         print(f"   - Interface: Interactive HTML with dropdown menus")
         
-        print("\n⏱️  Time Estimate: 2-3 hours (1-2 minutes per point)")
-        print("\n🎯 Remember: 70-85% agreement = EXCELLENT validation!")
+        print("\n⏱️  Time Estimate: ~2–3 hours (1–2 minutes per point)")
+        print("\n🎯 Remember: 70–85% agreement = EXCELLENT validation (consistency, not accuracy)")
         
     except Exception as e:
         print(f"\n❌ Error occurred: {e}")
@@ -996,6 +1087,13 @@ def main():
         # Close logger and restore stdout
         sys.stdout.close()
         sys.stdout = sys.stdout.terminal
+    
+    # Try to summarise if the CSV is already present
+    try:
+        summarise_visual_validation(csv_path=None, out_dir=str(Config.SUMMARY_OUT_DIR))
+    except Exception as e:
+        print(f"Could not summarise visual validation yet: {e}")
+
 
 if __name__ == "__main__":
     main()
