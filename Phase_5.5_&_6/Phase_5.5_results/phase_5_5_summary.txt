@@ -1,0 +1,14 @@
+============================================================
+PHASE 5.5 SUMMARY REPORT
+Generated: 2025-08-24 22:57:49
+============================================================
+
+FINAL RESULTS:
+- Clean samples obtained: 3049
+- Healthy samples: 2129
+- Stressed samples: 920
+- Stress percentage: 30.2%
+- Success rate: 79.8%
+
+Log file saved to: logs\phase_5_5_log.txt
+============================================================

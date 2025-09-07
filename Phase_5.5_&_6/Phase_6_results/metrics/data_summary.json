@@ -1,0 +1,25 @@
+{
+  "total_samples": 3049,
+  "n_features": 15,
+  "healthy_samples": 2129,
+  "stressed_samples": 920,
+  "stress_percentage": 30.173827484421125,
+  "n_spatial_blocks": 5,
+  "features": [
+    "NDVI_AUC",
+    "NDVI_drop",
+    "NDVI_peak",
+    "NDVI_slopeEarly",
+    "NDWI_AUC",
+    "NDWI_drop",
+    "NDWI_peak",
+    "GNDVI_AUC",
+    "GNDVI_drop",
+    "SAVI_AUC",
+    "MSAVI2_AUC",
+    "h_NDVI_drop",
+    "h_NDWI_drop",
+    "h_AUC_z",
+    "h_NDVI_AUC_cur"
+  ]
+}

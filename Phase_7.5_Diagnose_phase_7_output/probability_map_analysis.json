@@ -1,0 +1,57 @@
+{
+  "filename": "ludhiana_stress_map_rf_2023_24_probability_pct.tif",
+  "analysis_date": "2025-08-24 23:13:58",
+  "file_exists": true,
+  "metadata": {
+    "width": 9539,
+    "height": 5066,
+    "total_pixels": 48324574,
+    "bands": 1,
+    "dtype": "uint8",
+    "crs": "EPSG:32643",
+    "pixel_size_m": 10.0,
+    "nodata_value": null,
+    "area_km2": 4832.4574
+  },
+  "data_coverage": {
+    "total_pixels": 48324574,
+    "valid_pixels": 5564974,
+    "nodata_pixels": 42759600,
+    "valid_percentage": 11.52,
+    "nodata_percentage": 88.48
+  },
+  "export_status": "SUCCESS",
+  "statistics": {
+    "min": 1.0,
+    "max": 99.0,
+    "mean": 88.82902741324578,
+    "median": 99.0,
+    "std": 27.965757790447196,
+    "percentiles": {
+      "p5": 1.0,
+      "p25": 1.0,
+      "p50": 1.0,
+      "p75": 3.0,
+      "p95": 96.0
+    },
+    "note": "Original file contains HEALTHY probability, converted to STRESS for analysis"
+  },
+  "stress_categories": {
+    "high_stress_pixels": 559466,
+    "moderate_stress_pixels": 19266,
+    "low_stress_pixels": 7647,
+    "healthy_pixels": 4978595,
+    "high_stress_pct": 10.05,
+    "moderate_stress_pct": 0.35,
+    "low_stress_pct": 0.14,
+    "healthy_pct": 89.46
+  },
+  "sampling_viability": {
+    "high_stress_available": 559466,
+    "healthy_available": 4978595,
+    "uncertain_available": 2201,
+    "can_sample_high_stress": true,
+    "can_sample_healthy": true,
+    "can_sample_uncertain": true
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "baseline": {
+    "accuracy": 0.9252213840603477,
+    "f1_stressed": 0.8789808917197452,
+    "kappa": 0.824918223039796
+  },
+  "random_forest": {
+    "accuracy": 0.9147261397179403,
+    "f1_stressed": 0.864158829676071,
+    "f1_healthy": 0.9378585086042065,
+    "kappa": 0.8021526265428047,
+    "roc_auc": 0.9623986562378746
+  },
+  "fold_metrics": [
+    {
+      "fold": 1,
+      "n_samples": 1318,
+      "accuracy": 0.91350531107739,
+      "f1_stressed": 0.8507853403141361,
+      "kappa": 0.7900781276196225,
+      "roc_auc": 0.9619517013384937
+    },
+    {
+      "fold": 2,
+      "n_samples": 545,
+      "accuracy": 0.9412844036697248,
+      "f1_stressed": 0.8699186991869918,
+      "kappa": 0.8320848818624713,
+      "roc_auc": 0.9762930179017981
+    },
+    {
+      "fold": 3,
+      "n_samples": 470,
+      "accuracy": 0.9127659574468086,
+      "f1_stressed": 0.8845070422535212,
+      "kappa": 0.8146794637533419,
+      "roc_auc": 0.9638384870943011
+    },
+    {
+      "fold": 4,
+      "n_samples": 377,
+      "accuracy": 0.8938992042440318,
+      "f1_stressed": 0.8809523809523809,
+      "kappa": 0.7852830618521471,
+      "roc_auc": 0.9416737709576585
+    },
+    {
+      "fold": 5,
+      "n_samples": 339,
+      "accuracy": 0.9026548672566371,
+      "f1_stressed": 0.8450704225352113,
+      "kappa": 0.7746146872166818,
+      "roc_auc": 0.9677609427609428
+    }
+  ],
+  "training_samples": 3049,
+  "n_features": 15,
+  "feature_names": [
+    "NDVI_AUC",
+    "NDVI_drop",
+    "NDVI_peak",
+    "NDVI_slopeEarly",
+    "NDWI_AUC",
+    "NDWI_drop",
+    "NDWI_peak",
+    "GNDVI_AUC",
+    "GNDVI_drop",
+    "SAVI_AUC",
+    "MSAVI2_AUC",
+    "h_NDVI_drop",
+    "h_NDWI_drop",
+    "h_AUC_z",
+    "h_NDVI_AUC_cur"
+  ]
+}

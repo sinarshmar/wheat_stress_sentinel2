@@ -1,0 +1,92 @@
+================================================================================
+PHASE 8 LOG FILE - GUIDED VALIDATION
+Generated: 2025-08-25 16:44:03
+================================================================================
+
+============================================================
+PHASE 8: INTERACTIVE VALIDATION SETUP
+============================================================
+
+Purpose: Generate validation points for visual consistency check
+Approach: INTERACTIVE guided validation with HTML interface
+Goal: Assess if model predictions are visually consistent
+Assessment area: 100m radius at zoom level 15
+
+
+============================================================
+LOADING PROBABILITY MAP
+============================================================
+Map dimensions: (5066, 9539)
+CRS: EPSG:32643
+Valid pixels: 5,564,974
+
+----------------------------------------
+SAMPLING STRESSED POINTS
+----------------------------------------
+Available stressed pixels (0-10% healthy prob): 439,375
+✓ Sampled 75 stressed points
+
+----------------------------------------
+SAMPLING HEALTHY POINTS
+----------------------------------------
+Available healthy pixels (90-100% healthy prob): 4,963,921
+✓ Sampled 75 healthy points
+
+----------------------------------------
+CREATING BROWSER LINKS
+----------------------------------------
+✓ Created browser links for 150 points (default: Feb 2024, zoom 15)
+
+----------------------------------------
+CREATING INTERACTIVE HTML INTERFACE
+----------------------------------------
+✓ Created interactive HTML interface: Phase_8_Validation\validation_interface.html
+✓ Created validation guide: Phase_8_Validation\validation_guide.md
+✓ Created summary JSON: Phase_8_Validation\validation_summary.json
+
+✓ Saved complete point data: Phase_8_Validation\validation_points_complete.json
+
+============================================================
+INTERACTIVE VALIDATION SETUP COMPLETE
+============================================================
+
+✅ Generated 150 validation points:
+   - 75 stressed (high confidence)
+   - 75 healthy (high confidence)
+
+📁 Files created in Phase_8_Validation/:
+   1. validation_interface.html - Interactive assessment tool
+   2. validation_guide.md - Quick reference guide
+   3. validation_summary.json - Metadata summary
+   4. validation_points_complete.json - Complete point data
+
+📋 NEXT STEPS:
+1. Open 'validation_interface.html' in your browser
+2. For each point:
+   - Click 'Open in EO Browser' to view imagery
+   - Focus on 100m radius around center point
+   - Check imagery for all three dates (Dec, Feb, Mar)
+   - Use dropdown menus to record your assessment
+   - Add notes in the text area if needed
+3. Click 'Download as CSV' to save your results
+4. Run Phase_8_Analysis.py on the downloaded CSV file
+
+🔍 Assessment Details:
+   - Zoom level: 15 (optimized for 100m radius)
+   - Default date: February 16, 2024 (peak growth)
+   - Assessment area: ~100m radius around each point
+   - Interface: Interactive HTML with dropdown menus
+
+⏱️  Time Estimate: 2-3 hours (1-2 minutes per point)
+
+🎯 Remember: 70-85% agreement = EXCELLENT validation!
+
+============================================================
+PHASE 8 COMPLETE
+============================================================
+
+📝 Full log saved to: logs\phase_8_log.txt
+
+================================================================================
+LOG END: 2025-08-25 16:44:03
+================================================================================

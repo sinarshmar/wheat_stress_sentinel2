@@ -1,0 +1,47 @@
+{
+  "model_type": "RandomForestClassifier",
+  "n_estimators": 50,
+  "max_depth": null,
+  "min_samples_split": 20,
+  "min_samples_leaf": 8,
+  "max_features": 0.5,
+  "feature_names": [
+    "NDVI_AUC",
+    "NDVI_drop",
+    "NDVI_peak",
+    "NDVI_slopeEarly",
+    "NDWI_AUC",
+    "NDWI_drop",
+    "NDWI_peak",
+    "GNDVI_AUC",
+    "GNDVI_drop",
+    "SAVI_AUC",
+    "MSAVI2_AUC",
+    "h_NDVI_drop",
+    "h_NDWI_drop",
+    "h_AUC_z",
+    "h_NDVI_AUC_cur"
+  ],
+  "feature_importances": [
+    0.00541356392819116,
+    0.1668792939228941,
+    0.009600701294953662,
+    0.002434302734916133,
+    0.0018541279996286165,
+    0.37925605724327416,
+    0.03368148689508586,
+    0.004618907912731074,
+    0.004245728647252302,
+    0.003874973269836285,
+    0.002326751967750847,
+    0.10921537187921951,
+    0.2673759640013864,
+    0.0031545489710259537,
+    0.006068219331853885
+  ],
+  "n_classes": 2,
+  "classes": [
+    0,
+    1
+  ]
+}

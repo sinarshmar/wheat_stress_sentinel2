@@ -1,0 +1,255 @@
+================================================================================
+PHASE 5.5 LOG FILE
+Generated: 2025-08-24 22:57:13
+================================================================================
+
+PHASE 5.5: SPATIAL JOIN AND VALIDATION
+Updated for TILED sampling outputs
+============================================================
+
+Validating input files...
+✓ Found coordinates file: coordinates_labels_tiled_rabi_2023_24.csv
+✓ Found 2 TIF file(s)
+✓ Found summary file with sampling statistics
+  - Sampling method: tiled
+  - Actual total samples: 3821
+
+============================================================
+MERGING AND DIAGNOSING RASTER DATA
+============================================================
+
+1. Found 2 raster file(s):
+   - predictors_image_tiled_rabi_2023_24-0000000000-0000000000.tif
+   - predictors_image_tiled_rabi_2023_24-0000000000-0000008704.tif
+
+2. Merging tiles...
+   ✓ Merged to: Phase_5.5_results\predictors_image_MERGED.tif
+
+3. Analyzing raster data...
+   - Shape: 5066 x 9539
+   - Bands: 15
+   - CRS: EPSG:32643
+   - NoData value: None
+
+4. Band Statistics (with unmask(-9999)):
+--------------------------------------------------------------------------------
+
+Band 1 (NDVI_AUC):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [4.536, 147.729]
+  - Mean: 95.752, Std: 9.936
+
+Band 2 (NDVI_drop):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,354 (40.2%)
+  - NoData (-9999) pixels: 16,248,424 (33.6%)
+  - Range: [0.000, 0.814]
+  - Mean: 0.024, Std: 0.072
+
+Band 3 (NDVI_peak):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [0.147, 1.000]
+  - Mean: 0.867, Std: 0.048
+
+Band 4 (NDVI_slopeEarly):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 15,304,581 (31.7%)
+  - NoData (-9999) pixels: 20,389,197 (42.2%)
+  - Range: [-0.030, 0.031]
+  - Mean: 0.014, Std: 0.007
+
+Band 5 (NDWI_AUC):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [-24.957, 79.583]
+  - Mean: 38.321, Std: 9.337
+
+Band 6 (NDWI_drop):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,354 (40.2%)
+  - NoData (-9999) pixels: 16,248,424 (33.6%)
+  - Range: [0.000, 0.808]
+  - Mean: 0.016, Std: 0.062
+
+Band 7 (NDWI_peak):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [-0.053, 0.763]
+  - Mean: 0.498, Std: 0.059
+
+Band 8 (GNDVI_AUC):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [6.403, 124.940]
+  - Mean: 90.542, Std: 7.336
+
+Band 9 (GNDVI_drop):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,354 (40.2%)
+  - NoData (-9999) pixels: 16,248,424 (33.6%)
+  - Range: [0.000, 0.618]
+  - Mean: 0.018, Std: 0.048
+
+Band 10 (SAVI_AUC):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [6.803, 221.572]
+  - Mean: 143.609, Std: 14.903
+
+Band 11 (MSAVI2_AUC):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [7.393, 157.939]
+  - Mean: 112.471, Std: 9.273
+
+Band 12 (h_NDVI_drop):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,354 (40.2%)
+  - NoData (-9999) pixels: 16,248,424 (33.6%)
+  - Range: [0.000, 0.814]
+  - Mean: 0.024, Std: 0.072
+
+Band 13 (h_NDWI_drop):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,354 (40.2%)
+  - NoData (-9999) pixels: 16,248,424 (33.6%)
+  - Range: [0.000, 0.808]
+  - Mean: 0.016, Std: 0.062
+
+Band 14 (h_AUC_z):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [-63.155, 73.951]
+  - Mean: 0.941, Std: 2.203
+
+Band 15 (h_NDVI_AUC_cur):
+  - Total pixels: 48,324,574
+  - Valid data pixels: 19,445,395 (40.2%)
+  - NoData (-9999) pixels: 16,248,383 (33.6%)
+  - Range: [4.536, 147.729]
+  - Mean: 95.752, Std: 9.936
+
+================================================================================
+5. SUMMARY:
+--------------------------------------------------------------------------------
+✓ unmask(-9999) worked! NoData areas are now -9999
+  This means sampling will work at ALL coordinates!
+
+📊 Statistics saved to: Phase_5.5_results\new_raster_statistics.csv
+
+============================================================
+EXTRACTING ALL SAMPLE POINTS
+============================================================
+
+1. Loaded 3821 sample points from coordinates_labels_tiled_rabi_2023_24.csv
+   Columns found: ['system:index', 'class_name', 'label', 'lat', 'lon', 'run_tag', 'sample_id', 'season', 'tile_id', 'unique_id']...
+   Class distribution:
+     - healthy: 2597 (68.0%)
+     - stressed: 1224 (32.0%)
+   Samples per tile: {0: np.int64(514), 1: np.int64(525), 2: np.int64(335), 3: np.int64(424), 4: np.int64(582), 5: np.int64(284), 6: np.int64(300), 7: np.int64(370), 8: np.int64(487)}
+
+2. Extracting predictor values...
+   - Extracted shape: (3821, 15)
+   - Points with valid data: 3049 (79.8%)
+   - Points in NoData areas: 772 (20.2%)
+
+3. Saved full dataset to: Phase_5.5_results\training_data_with_unmask.csv
+4. Saved clean dataset to: Phase_5.5_results\training_data_clean.csv
+
+5. Final Dataset Summary:
+   - Total samples: 3821
+   - Clean samples: 3049
+   - Healthy (class 0): 2129
+   - Stressed (class 1): 920
+   - Stress percentage: 30.2%
+
+6. Sample of clean data (first 3 rows):
+   label class_name   NDVI_AUC  NDVI_drop  NDVI_peak   h_AUC_z
+0      0    healthy  94.113556   0.000000   0.882823  0.552280
+1      0    healthy  97.607445   0.000000   0.856021  1.173352
+2      0    healthy  98.026680   0.005704   0.818374  0.609154
+
+7. Key Predictor Statistics (clean data):
+   NDVI_AUC:
+     - Mean: 98.250
+     - Std:  8.755
+     - Range: [51.099, 134.925]
+   NDVI_drop:
+     - Mean: 0.023
+     - Std:  0.072
+     - Range: [0.000, 0.720]
+   NDWI_drop:
+     - Mean: 0.015
+     - Std:  0.062
+     - Range: [0.000, 0.642]
+   h_AUC_z:
+     - Mean: 1.206
+     - Std:  2.095
+     - Range: [-15.078, 31.012]
+
+============================================================
+DATA QUALITY VALIDATION
+============================================================
+
+1. Missing Values Check:
+   ⚠️  Found missing values:
+NDVI_AUC           3
+NDVI_drop          3
+NDVI_peak          3
+NDVI_slopeEarly    3
+NDWI_AUC           3
+NDWI_drop          3
+NDWI_peak          3
+GNDVI_AUC          3
+GNDVI_drop         3
+SAVI_AUC           3
+MSAVI2_AUC         3
+h_NDVI_drop        3
+h_NDWI_drop        3
+h_AUC_z            3
+h_NDVI_AUC_cur     3
+dtype: int64
+
+2. Value Range Checks:
+   ✓ NDVI_peak: All values in valid range
+   ✓ NDVI_slopeEarly: All values in valid range
+
+3. Class Balance:
+   - Class 0 (healthy): 2129
+   - Class 1 (stressed): 920
+   - Imbalance ratio: 2.31:1
+
+4. Coordinate Validation:
+   ✓ All coordinates within Punjab bounds
+
+5. Tile Distribution:
+   Tiles represented: 9
+   Samples per tile range: [64, 501]
+
+============================================================
+✅ SUCCESS! Training data ready!
+   - Clean dataset: Phase_5.5_results\training_data_clean.csv
+   - 3049 samples ready for Phase 6
+   Next step: Run Phase_6.py for model training
+
+============================================================
+PHASE 5.5 COMPLETE
+============================================================
+
+📄 Summary report saved to: Phase_5.5_results\phase_5_5_summary.txt
+
+📝 Full log saved to: logs\phase_5_5_log.txt
+
+================================================================================
+LOG END: 2025-08-24 22:57:49
+================================================================================

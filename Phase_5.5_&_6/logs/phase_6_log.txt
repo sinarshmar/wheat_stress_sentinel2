@@ -1,0 +1,159 @@
+================================================================================
+PHASE 6 LOG FILE
+Generated: 2025-08-24 22:59:47
+================================================================================
+
+
+============================================================
+PHASE 6: MODEL TRAINING & EVALUATION
+============================================================
+Validating input files...
+✓ Input data found: Phase_5.5_results\training_data_clean.csv
+  Shape: (3049, 27)
+============================================================
+LOADING DATA
+============================================================
+Loaded 3049 samples from: Phase_5.5_results\training_data_clean.csv
+
+Data Summary:
+  Features: 15
+  Samples: 3049
+  Healthy: 2129 (69.8%)
+  Stressed: 920 (30.2%)
+  Spatial blocks: 5
+  Weight range: [0.00, 3.00]
+  Data summary saved to: Phase_6_results\metrics\data_summary.json
+
+============================================================
+BASELINE MODEL (Rule-based)
+============================================================
+Baseline Rules:
+  NDVI_drop > 0.02
+  OR (NDWI_drop > 0.01 AND AUC_z < 1.5)
+
+Baseline Performance:
+  Accuracy: 0.925
+  F1 (stressed): 0.879
+  Cohen's κ: 0.825
+
+Baseline Confusion Matrix:
+  TN=1993  FP= 136
+  FN=  92  TP= 828
+
+============================================================
+RANDOM FOREST TRAINING
+============================================================
+
+Running RandomizedSearchCV:
+  Iterations: 40
+  CV folds: 5 (spatial blocks)
+  This may take several minutes...
+Fitting 5 folds for each of 40 candidates, totalling 200 fits
+
+Best parameters:
+  n_estimators: 50
+  min_samples_split: 20
+  min_samples_leaf: 8
+  max_features: 0.5
+  max_depth: None
+  class_weight: balanced_subsample
+  bootstrap: False
+
+Best CV F1 score: 0.990
+  Hyperparameter search results saved to: Phase_6_results\metrics\hyperparameter_search_results.csv
+
+============================================================
+MODEL EVALUATION (Spatial CV)
+============================================================
+
+Per-Fold Results:
+------------------------------------------------------------
+ fold  n_samples  accuracy  f1_stressed    kappa  roc_auc
+    1       1318  0.913505     0.850785 0.790078 0.961952
+    2        545  0.941284     0.869919 0.832085 0.976293
+    3        470  0.912766     0.884507 0.814679 0.963838
+    4        377  0.893899     0.880952 0.785283 0.941674
+    5        339  0.902655     0.845070 0.774615 0.967761
+
+Fold Statistics:
+  Mean Accuracy: 0.913 ± 0.018
+  Mean F1 (stressed): 0.866 ± 0.018
+  Mean κ: 0.799 ± 0.023
+
+Overall Results (All Folds Combined):
+------------------------------------------------------------
+  accuracy: 0.915
+  f1_stressed: 0.864
+  f1_healthy: 0.938
+  kappa: 0.802
+  roc_auc: 0.962
+
+Classification Report:
+              precision    recall  f1-score   support
+
+     Healthy      0.955     0.922     0.938      2129
+    Stressed      0.832     0.899     0.864       920
+
+    accuracy                          0.915      3049
+   macro avg      0.893     0.910     0.901      3049
+weighted avg      0.918     0.915     0.916      3049
+
+
+============================================================
+FEATURE IMPORTANCE ANALYSIS
+============================================================
+
+Top 10 Important Features (Gini):
+       feature  importance
+     NDWI_drop    0.379256
+   h_NDWI_drop    0.267376
+     NDVI_drop    0.166879
+   h_NDVI_drop    0.109215
+     NDWI_peak    0.033681
+     NDVI_peak    0.009601
+h_NDVI_AUC_cur    0.006068
+      NDVI_AUC    0.005414
+     GNDVI_AUC    0.004619
+    GNDVI_drop    0.004246
+
+Calculating SHAP values...
+Warning: SHAP analysis failed: Per-column arrays must each be 1-dimensional
+
+============================================================
+CREATING VISUALIZATIONS
+============================================================
+✓ Visualizations saved to Phase_6_results\figures
+
+============================================================
+SAVING MODEL AND METRICS
+============================================================
+✓ Model saved to Phase_6_results\models\rf_model.pkl
+✓ GEE parameters saved to Phase_6_results\models\rf_model_gee.json
+✓ Metrics saved to Phase_6_results\metrics\performance_metrics.json
+✓ Feature importance saved to Phase_6_results\metrics\feature_importance.csv
+
+============================================================
+TRAINING COMPLETE
+============================================================
+
+Final Performance Summary:
+  Baseline F1 (stressed): 0.879
+  RF F1 (stressed): 0.864
+  Improvement: -0.015
+
+✓ All outputs saved to: Phase_6_results
+  - Models: Phase_6_results\models
+  - Figures: Phase_6_results\figures
+  - Metrics: Phase_6_results\metrics
+
+📄 Summary report saved to: Phase_6_results\phase_6_summary.txt
+
+============================================================
+PHASE 6 COMPLETE
+============================================================
+
+📝 Full log saved to: logs\phase_6_log.txt
+
+================================================================================
+LOG END: 2025-08-24 23:00:23
+================================================================================

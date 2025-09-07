@@ -1,0 +1,36 @@
+{
+  "filename": "ludhiana_stress_map_rf_2023_24_binary.tif",
+  "analysis_date": "2025-08-24 23:14:23",
+  "file_exists": true,
+  "metadata": {
+    "width": 9539,
+    "height": 5066,
+    "total_pixels": 48324574,
+    "pixel_size_m": 10.0,
+    "total_area_km2": 4832.5,
+    "crs": "EPSG:32643"
+  },
+  "classification": {
+    "stressed_pixels": 4986268,
+    "healthy_pixels": 43338306,
+    "total_valid_pixels": 48324574,
+    "nodata_pixels": 0,
+    "stressed_percentage": 10.32,
+    "healthy_percentage": 89.68,
+    "stressed_area_ha": 49862.7,
+    "healthy_area_ha": 433383.1,
+    "total_crop_area_ha": 483245.7
+  },
+  "spatial_distribution": {
+    "edge_stress_percentage": 0.42,
+    "center_stress_percentage": 10.95,
+    "spatial_consistency": false
+  },
+  "validation": {
+    "expected_stress_pct": 10.3,
+    "actual_stress_pct": 10.32,
+    "difference_pct": 0.02,
+    "match_quality": "EXCELLENT"
+  },
+  "export_status": "SUCCESS"
+}

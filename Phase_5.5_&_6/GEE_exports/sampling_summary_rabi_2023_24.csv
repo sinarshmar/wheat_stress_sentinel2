@@ -1,0 +1,2 @@
+system:index,actual_healthy,actual_stressed,actual_total,aoi_area_km2,export_date,run_tag,sampling_method,sampling_scale_m,target_per_class,tiles_count,.geo
+0,2597,1224,3821,3572.9797211988753,2025-08-23,rabi_2023_24,tiled,20,10800,9,"{""type"":""MultiPoint"",""coordinates"":[]}"

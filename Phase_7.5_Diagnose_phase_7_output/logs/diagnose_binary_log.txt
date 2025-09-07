@@ -1,0 +1,81 @@
+================================================================================
+BINARY CLASSIFICATION ANALYSIS LOG
+Generated: 2025-08-24 23:14:23
+================================================================================
+
+============================================================
+BINARY CLASSIFICATION ANALYSIS
+============================================================
+
+Analyzing: ludhiana_stress_map_rf_2023_24_binary.tif
+------------------------------------------------------------
+
+1. FILE METADATA:
+   - Driver: GTiff
+   - Dimensions: 9539 x 5066 pixels
+   - Bands: 1
+   - Data type: uint8
+   - CRS: EPSG:32643
+   - Pixel size: 10.0m x 10.0m
+   - NoData value: None
+   - Total area: 4832.5 km²
+
+2. DATA ANALYSIS:
+
+   Classification Results:
+   - Total pixels: 48,324,574
+   - Valid pixels: 48,324,574 (100.0%)
+   - NoData pixels: 0 (0.0%)
+
+   Binary Classification:
+   - Stressed (1): 4,986,268 pixels (10.3%)
+   - Healthy (0): 43,338,306 pixels (89.7%)
+
+   Area Calculations:
+   - Total cropland: 483245.7 ha (4832.5 km²)
+   - Stressed area: 49862.7 ha (498.6 km²)
+   - Healthy area: 433383.1 ha (4333.8 km²)
+
+3. SPATIAL DISTRIBUTION CHECK:
+   - Edge pixels stress: 0.4%
+   - Center pixels stress: 10.9%
+   ⚠️ WARNING: Significant difference between edge and center stress
+      This might indicate edge effects or processing artifacts
+
+4. VALIDATION AGAINST EXPECTATIONS:
+   - Expected stress: 10.3% (from Phase 7)
+   - Actual stress: 10.3%
+   - Difference: 0.0%
+   ✅ EXCELLENT: Binary classification matches Phase 7 output
+
+============================================================
+FINAL ASSESSMENT:
+------------------------------------------------------------
+✅ BINARY CLASSIFICATION EXPORT SUCCESSFUL!
+   - 4,986,268 stressed pixels (10.3%)
+   - 43,338,306 healthy pixels (89.7%)
+   - Total crop area: 483245.7 ha
+   - Matches Phase 7 output: EXCELLENT
+
+📊 Results saved to: binary_classification_analysis.json
+
+============================================================
+COMPARISON WITH PROBABILITY MAP
+============================================================
+
+Stress Detection Comparison:
+  - Probability map (>80% stress): 10.1%
+  - Binary classification: 10.3%
+  - Difference: 0.3%
+
+  ✅ EXCELLENT agreement between probability and binary outputs
+
+============================================================
+ANALYSIS COMPLETE
+============================================================
+
+📝 Full log saved to: logs\diagnose_binary_log.txt
+
+================================================================================
+LOG END: 2025-08-24 23:14:23
+================================================================================

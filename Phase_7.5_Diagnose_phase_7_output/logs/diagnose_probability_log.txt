@@ -1,0 +1,106 @@
+================================================================================
+PROBABILITY MAP ANALYSIS LOG
+Generated: 2025-08-24 23:13:58
+================================================================================
+
+============================================================
+PHASE 8: PROBABILITY MAP ANALYSIS
+============================================================
+
+Analyzing: ludhiana_stress_map_rf_2023_24_probability_pct.tif
+------------------------------------------------------------
+
+1. FILE METADATA:
+   - Driver: GTiff
+   - Dimensions: 9539 x 5066 pixels
+   - Bands: 1
+   - Data type: uint8
+   - CRS: EPSG:32643
+   - Pixel size: (10.0, 10.0)
+   - NoData value: None
+   - Approximate area: 4832.5 km²
+
+2. DATA ANALYSIS:
+   - Shape: (5066, 9539)
+   - Memory size: 46.1 MB
+
+   Data Categories:
+   - Total pixels: 48,324,574
+   - Valid pixels: 5,564,974 (11.5%)
+   - NoData pixels: 42,759,600 (88.5%)
+
+3. EXPORT QUALITY CHECK:
+   ✅ Coverage looks reasonable (11.5%)
+
+4. PROBABILITY DISTRIBUTION:
+   - Range: [1.0, 99.0]
+   - Mean: 88.8
+   - Median: 99.0
+   - Std Dev: 28.0
+
+   NOTE: File contains HEALTHY probability (GEE default)
+   Converting to STRESS probability for analysis...
+
+   Stress Probability Percentiles:
+   - P 5: 1.0%
+   - P25: 1.0%
+   - P50: 1.0%
+   - P75: 3.0%
+   - P95: 96.0%
+
+   Stress Categories (% of valid pixels):
+   - High stress (>80%): 10.1%
+   - Moderate stress (50-80%): 0.3%
+   - Low stress (20-50%): 0.1%
+   - Healthy (<20%): 89.5%
+
+5. VALIDATION SAMPLING POTENTIAL:
+   Can we sample 50 points from each category?
+   - High stress (>80%): YES ✅ (559,466 pixels available)
+   - Healthy (<20%): YES ✅ (4,978,595 pixels available)
+   - Uncertain (40-60%): YES ✅ (2,201 pixels available)
+
+6. GENERATING VISUALIZATIONS...
+   ✅ Saved visualization to: probability_map_analysis.png
+
+============================================================
+FINAL ASSESSMENT:
+------------------------------------------------------------
+✅ EXPORT SUCCESSFUL!
+   - File contains valid data for 5,564,974 pixels
+   - Coverage is 11.5% of total area
+   - Data range is appropriate (0-100)
+   - Sufficient pixels for validation sampling
+
+   RECOMMENDATION: Proceed with validation sampling from this file
+
+📊 Full results saved to: probability_map_analysis.json
+
+============================================================
+VALIDATION SAMPLING FEASIBILITY REPORT
+============================================================
+
+Proposed 150-point validation sample:
+----------------------------------------
+
+Option 1: IDEAL STRATIFICATION
+   High stress (>80%)  :  50 needed, 559,466 available ✅
+   Healthy (<20%)      :  50 needed, 4,978,595 available ✅
+   Uncertain (40-60%)  :  50 needed,  2,201 available ✅
+   ✅ IDEAL STRATIFICATION IS POSSIBLE!
+
+Option 3: SIMPLIFIED APPROACH
+   Just high vs low probability:
+   High (>80%): 75 points ✅
+   Low (<20%): 75 points ✅
+   ✅ SIMPLIFIED APPROACH IS POSSIBLE!
+
+============================================================
+ANALYSIS COMPLETE
+============================================================
+
+📝 Full log saved to: logs\diagnose_probability_log.txt
+
+================================================================================
+LOG END: 2025-08-24 23:14:06
+================================================================================
