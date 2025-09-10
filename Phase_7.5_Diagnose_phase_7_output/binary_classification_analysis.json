@@ -1,6 +1,6 @@
 {
   "filename": "ludhiana_stress_map_rf_2023_24_binary.tif",
-  "analysis_date": "2025-08-24 23:14:23",
+  "analysis_date": "2025-09-10 12:18:14",
   "file_exists": true,
   "metadata": {
     "width": 9539,
@@ -12,25 +12,25 @@
   },
   "classification": {
     "stressed_pixels": 4986268,
-    "healthy_pixels": 43338306,
-    "total_valid_pixels": 48324574,
-    "nodata_pixels": 0,
-    "stressed_percentage": 10.32,
-    "healthy_percentage": 89.68,
+    "healthy_pixels": 22949105,
+    "total_valid_pixels": 27935373,
+    "nodata_pixels": 20389201,
+    "stressed_percentage": 17.85,
+    "healthy_percentage": 82.15,
     "stressed_area_ha": 49862.7,
-    "healthy_area_ha": 433383.1,
-    "total_crop_area_ha": 483245.7
+    "healthy_area_ha": 229491.0,
+    "total_crop_area_ha": 279353.7
   },
   "spatial_distribution": {
-    "edge_stress_percentage": 0.42,
-    "center_stress_percentage": 10.95,
+    "edge_stress_percentage": 0.43,
+    "center_stress_percentage": 19.8,
     "spatial_consistency": false
   },
   "validation": {
     "expected_stress_pct": 10.3,
-    "actual_stress_pct": 10.32,
-    "difference_pct": 0.02,
-    "match_quality": "EXCELLENT"
+    "actual_stress_pct": 17.85,
+    "difference_pct": 7.55,
+    "match_quality": "POOR"
   },
-  "export_status": "SUCCESS"
+  "export_status": "FAILED"
 }

@@ -1,6 +1,6 @@
 {
   "filename": "ludhiana_stress_map_rf_2023_24_probability_pct.tif",
-  "analysis_date": "2025-08-24 23:13:58",
+  "analysis_date": "2025-09-10 12:18:48",
   "file_exists": true,
   "metadata": {
     "width": 9539,
@@ -24,9 +24,9 @@
   "statistics": {
     "min": 1.0,
     "max": 99.0,
-    "mean": 88.82902741324578,
+    "mean": 88.8290277726365,
     "median": 99.0,
-    "std": 27.965757790447196,
+    "std": 27.965757889027625,
     "percentiles": {
       "p5": 1.0,
       "p25": 1.0,

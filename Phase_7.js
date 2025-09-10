@@ -376,7 +376,7 @@ Export.image.toDrive({
 
 // Export 2: Stress probability only (0-100 scale for easier interpretation)
 Export.image.toDrive({
-  image: probability.multiply(100).toUint8(),
+  image: probability.multiply(100).unmask(255).toUint8(),
   description: PARAMS7.exportPrefix + '_probability_pct',
   folder: PARAMS7.exportFolder,
   fileNamePrefix: PARAMS7.exportPrefix + '_probability_pct',
@@ -405,7 +405,7 @@ Export.image.toDrive({
 
 // Export 4: Binary classification
 Export.image.toDrive({
-  image: classified.updateMask(cropMask).toUint8(),
+  image: classified.updateMask(cropMask).unmask(255).toUint8(),
   description: PARAMS7.exportPrefix + '_binary',
   folder: PARAMS7.exportFolder,
   fileNamePrefix: PARAMS7.exportPrefix + '_binary',
@@ -515,3 +515,24 @@ print('Files will be saved to Google Drive folder:', PARAMS7.exportFolder);
 print('\nNext: Run exports, then proceed to Phase 8 (validation) or Phase 10 (write-up)');
 
 // End of Phase 7 (Updated)
+
+
+// Check how many pixels the crop mask actually has
+var cropMaskArea = cropMask.multiply(ee.Image.pixelArea()).divide(10000)
+  .reduceRegion({
+    reducer: ee.Reducer.sum(),
+    geometry: aoi,
+    scale: 10,
+    maxPixels: 1e13
+  });
+print('Crop mask area (ha):', cropMaskArea);
+
+// Check classified area before export
+var classifiedArea = classified.gte(0).multiply(ee.Image.pixelArea()).divide(10000)
+  .reduceRegion({
+    reducer: ee.Reducer.sum(),
+    geometry: aoi,
+    scale: 10,
+    maxPixels: 1e13
+  });
+print('Classified area (ha):', classifiedArea);

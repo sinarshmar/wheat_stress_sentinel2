@@ -389,3 +389,109 @@ print('3. Run Phase 5.5 spatial join (update input filenames)');
 print('4. Proceed with Phase 6 training with more data!');
 
 print('\n========== PHASE 5 TILED SAMPLING COMPLETE ==========');
+
+// Add this visualization code to Phase 5 after creating tiles
+
+// Get the actual geometries with proper error margin
+var samplingExtent = aoi.bounds();
+var districtArea = aoi.area(1);  // 1 meter error margin
+var boundingBoxArea = samplingExtent.area(1);  // 1 meter error margin
+
+// Convert to km²
+var districtAreaKm2 = districtArea.divide(1e6);
+var bboxAreaKm2 = boundingBoxArea.divide(1e6);
+var excessAreaKm2 = bboxAreaKm2.subtract(districtAreaKm2);
+var excessPercent = excessAreaKm2.divide(districtAreaKm2).multiply(100);
+
+print('EXTENT ANALYSIS:');
+print('1. District area (km²):', districtAreaKm2);
+print('2. Bounding box area (km²):', bboxAreaKm2);
+print('3. Excess area sampled (km²):', excessAreaKm2);
+print('4. Percentage excess:', excessPercent, '%');
+
+// Visualize the difference
+Map.centerObject(aoi, 9);
+
+// Layer 1: Actual district boundary (polygon)
+Map.addLayer(aoi, 
+  {color: 'FF0000'}, 
+  'Ludhiana District (Actual Boundary)', true);
+
+// Layer 2: Bounding box used for sampling
+Map.addLayer(samplingExtent, 
+  {color: '0000FF'}, 
+  'Sampling Bounding Box', true);
+
+// Layer 3: Show the tiles that were created
+Map.addLayer(tiles, 
+  {color: 'yellow'}, 
+  'Sampling Tiles (3x3 grid)', true);
+
+// Layer 4: Crop mask to see where actual data exists
+Map.addLayer(cropMask.selfMask(), 
+  {palette: ['green'], opacity: 0.3}, 
+  'Cropland Within Region', false);
+
+// Calculate how much cropland is actually within district vs outside
+var croplandInDistrict = ee.Image.pixelArea().divide(10000)
+  .updateMask(cropMask)
+  .reduceRegion({
+    reducer: ee.Reducer.sum(),
+    geometry: aoi,  // Within district
+    scale: 10,
+    maxPixels: 1e13
+  }).get('area');
+
+var croplandInBBox = ee.Image.pixelArea().divide(10000)
+  .updateMask(cropMask)
+  .reduceRegion({
+    reducer: ee.Reducer.sum(),
+    geometry: samplingExtent,  // Within bounding box
+    scale: 10,
+    maxPixels: 1e13
+  }).get('area');
+
+print('CROPLAND DISTRIBUTION:');
+print('5. Cropland within district (ha):', croplandInDistrict);
+print('6. Cropland within bounding box (ha):', croplandInBBox);
+print('7. Cropland outside district (ha):', 
+      ee.Number(croplandInBBox).subtract(croplandInDistrict));
+
+// For your dissertation figure, export this visualization
+var vizParams = {
+  bands: ['B4', 'B3', 'B2'],
+  min: 0,
+  max: 3000,
+  gamma: 1.4
+};
+
+// Get a cloud-free composite for background
+var background = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+  .filterBounds(samplingExtent)
+  .filterDate('2024-02-01', '2024-03-01')
+  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 10))
+  .median()
+  .clip(samplingExtent);
+
+// Create visualization layers
+var districtOutline = ee.Image().byte().paint(aoi, 1, 3);
+var bboxOutline = ee.Image().byte().paint(samplingExtent, 1, 2);
+
+// Combine for export
+var studyAreaViz = background.visualize(vizParams)
+  .blend(districtOutline.visualize({palette: ['FF0000'], opacity: 0.8}))
+  .blend(bboxOutline.visualize({palette: ['0000FF'], opacity: 0.6}));
+
+// Export for dissertation
+Export.image.toDrive({
+  image: studyAreaViz,
+  description: 'study_area_extent_map',
+  folder: 'dissertation_figures',
+  fileNamePrefix: 'study_area_extent',
+  region: samplingExtent,
+  scale: 100,  // 100m for visualization
+  crs: 'EPSG:4326',
+  maxPixels: 1e10
+});
+
+print('Study area map export configured - check Tasks tab');

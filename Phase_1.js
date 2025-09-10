@@ -259,6 +259,7 @@ Map.addLayer(ndviPeakMean.clip(aoi), PARAMS.ndviVis, '07c_NDVI peak mean', true)
 
 var kernel = ee.Kernel.square({radius: PARAMS.erodePixels, units: 'pixels'});
 var cropMask = cropMask_preErode.focal_min({kernel: kernel, iterations: 1}).selfMask();
+cropMask = cropMask.clip(aoi);
 
 if(PARAMS.showPreview){
 
