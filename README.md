@@ -114,3 +114,7 @@ Sentinel-2 L2A SR, Sentinel-2 Cloud Probability, GAUL Level-2 (all via GEE).
 ### Licence
 
 Code MIT. Text and figures CC BY 4.0. Third-party data under original licences.
+
+
+### Detailed Technical Workflow
+![Workflow Diagram](Detailed _ technical workflow.png)
