@@ -117,4 +117,4 @@ Code MIT. Text and figures CC BY 4.0. Third-party data under original licences.
 
 
 ### Detailed Technical Workflow
-![Workflow Diagram](Detailed _ technical workflow.png)
+Check the fike Detailed_technical_workflow.png
