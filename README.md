@@ -111,6 +111,9 @@ python Phase_8/Phase_8.py --outdir Phase_8/Phase_8_validation_result
 
 Sentinel-2 L2A SR, Sentinel-2 Cloud Probability, GAUL Level-2 (all via GEE).
 
+### Wheat stress validtion webpage is hosted here:
+https://wheatstressvalidation.tiiny.site/
+
 ### Licence
 
 Code MIT. Text and figures CC BY 4.0. Third-party data under original licences.
@@ -118,3 +121,4 @@ Code MIT. Text and figures CC BY 4.0. Third-party data under original licences.
 
 ### Detailed Technical Workflow
 Check the fike Detailed_technical_workflow.png
+
